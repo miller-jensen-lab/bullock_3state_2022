@@ -1,0 +1,68 @@
+begin model
+begin parameters
+    
+    kp 1
+    BIR .05			    
+    BTR .05  
+    PBR 10		      
+    PPRR 10                             
+    degrademrna 0.34
+    degradep 0.1
+    K 10              
+    A 5      
+    
+    switch 1  
+
+end parameters
+
+begin molecule types
+	UP()
+	AP()
+	BP()
+ 	RNA()
+    Protein()
+	Null()
+end molecule types
+
+begin seed species
+    UP()   		1
+    AP()        0
+    BP()        0
+    RNA()		0
+    Protein()   0
+end seed species
+
+begin observables
+	Molecules UnavailPro	UP()
+	Molecules AvailPro AP()
+	Molecules BoundPro BP()
+	Molecules RNA RNA()
+    Molecules Protein Protein()
+end observables
+
+begin functions
+    fm() = if(switch==1,PPRR + (A*PPRR)*(Protein/(K+Protein)),PPRR*2 + (A*PPRR*2)*(Protein/(K+Protein)))
+    bir() = if(switch==1,BIR,BIR*2)
+	pbr() = if(switch==1,PBR,PBR*2)
+
+end functions
+
+begin reaction rules
+	UP() <-> AP() 	bir(), BTR
+	AP() -> BP()	pbr()
+	BP() -> UP()	BTR
+	BP() -> RNA()+AP() fm()
+	RNA() -> Null() 	degrademrna	
+    RNA() -> Protein() + RNA() kp
+    Protein() -> Null() 	degradep  
+
+end reaction rules
+end model
+
+generate_network({overwrite=>1})
+saveParameters()
+simulate_ssa({t_end=>240, n_steps=>10})
+saveConcentrations()
+setParameter("switch",0)
+simulate_ssa({t_end=>24, n_steps=>24})
+
